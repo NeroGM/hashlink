@@ -891,3 +891,90 @@ DEFINE_PRIM(_ARR, get_displays, _NO_ARG);
 DEFINE_PRIM(_ARR, get_display_modes, _I32);
 DEFINE_PRIM(_DYN, get_current_display_mode, _I32 _BOOL);
 DEFINE_PRIM(_ARR, get_devices, _NO_ARG);
+
+// CUSTOM STUFF
+#include <Windows.h>
+#include <SDL_syswm.h>
+#include <dwmapi.h>
+
+HL_PRIM void HL_NAME(set_cursor_position)(SDL_Window* win, int x, int y) {
+	SDL_WarpMouseInWindow(win, x, y);
+}
+
+HL_PRIM void HL_NAME(set_cursor_position_g)(int x, int y) {
+	SDL_WarpMouseGlobal(x, y);
+}
+
+HL_PRIM void HL_NAME(get_cursor_position)(SDL_Window* win, int* x, int* y) {
+	SDL_GetMouseState(x, y);
+}
+
+HL_PRIM void HL_NAME(get_cursor_position_g)(int* x, int* y) {
+	SDL_GetGlobalMouseState(x, y);
+	//printf("x:%d y:%d\n", *x, *y);
+}
+
+HL_PRIM void HL_NAME(set_window_hit_test)(SDL_Window* win, SDL_HitTest callback, void* callback_data) {
+	SDL_SetWindowHitTest(win, callback, callback_data);
+}
+
+HL_PRIM void HL_NAME(get_window_position)(SDL_Window* win, int* x, int* y) {
+	SDL_SysWMinfo wmInfo;
+	SDL_VERSION(&wmInfo.version);
+	SDL_GetWindowWMInfo(win, &wmInfo);
+	if (wmInfo.subsystem == SDL_SYSWM_WINDOWS) {
+		RECT* r = (RECT*)malloc(sizeof(RECT));
+		DwmGetWindowAttribute(wmInfo.info.win.window, DWMWA_EXTENDED_FRAME_BOUNDS, r, sizeof(RECT));
+		*x = (int)r->left;
+		*y = (int)r->top;
+		return;
+	}
+	SDL_GetWindowPosition(win, x, y);
+}
+
+HL_PRIM void HL_NAME(set_window_position)(SDL_Window* win, int x, int y) {
+	int dx1 = 0;
+	int dy1 = 0;
+
+	SDL_SysWMinfo wmInfo;
+	SDL_VERSION(&wmInfo.version);
+	SDL_GetWindowWMInfo(win, &wmInfo);
+	if (wmInfo.subsystem == SDL_SYSWM_WINDOWS) {
+		int winX = 0;
+		int winY = 0;
+		SDL_GetWindowPosition(win, &winX, &winY);
+		RECT* r = (RECT*)malloc(sizeof(RECT));
+		DwmGetWindowAttribute(wmInfo.info.win.window, DWMWA_EXTENDED_FRAME_BOUNDS, r, sizeof(RECT));
+		dx1 = winX - (int)r->left;
+		dy1 = winY - (int)r->top;
+	}
+
+	x += dx1;
+	y += dy1;
+	SDL_SetWindowPosition(win, x, y);
+}
+
+HL_PRIM void HL_NAME(client_pos_to_screen_pos)(SDL_Window* win, int* x, int* y) {
+	int clientX = 0;
+	int clientY = 0;
+	SDL_GetWindowPosition(win, &clientX, &clientY);
+	*x += clientX;
+	*y += clientY;
+}
+
+HL_PRIM void HL_NAME(screen_pos_to_client_pos)(SDL_Window* win, int* x, int* y) {
+	int clientX = 0;
+	int clientY = 0;
+	SDL_GetWindowPosition(win, &clientX, &clientY);
+	*x -= clientX;
+	*y -= clientY;
+}
+
+DEFINE_PRIM(_VOID, set_cursor_position, TWIN _I32 _I32);
+DEFINE_PRIM(_VOID, set_cursor_position_g, _I32 _I32);
+DEFINE_PRIM(_VOID, get_cursor_position, TWIN _REF(_I32) _REF(_I32));
+DEFINE_PRIM(_VOID, get_cursor_position_g, _REF(_I32) _REF(_I32));
+DEFINE_PRIM(_VOID, get_window_position, TWIN _REF(_I32) _REF(_I32));
+DEFINE_PRIM(_VOID, set_window_position, TWIN _I32 _I32);
+DEFINE_PRIM(_VOID, client_pos_to_screen_pos, TWIN _REF(_I32) _REF(_I32));
+DEFINE_PRIM(_VOID, screen_pos_to_client_pos, TWIN _REF(_I32) _REF(_I32));

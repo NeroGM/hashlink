@@ -22,7 +22,6 @@ x64
 *.VC.db
 .vs
 /hl
-/include/sdl
 /include/openal
 ReleaseStatic
 /other/benchs/bench.*

@@ -504,3 +504,71 @@ DEFINE_PRIM(_BOOL, set_fullscreen_state, _BOOL);
 DEFINE_PRIM(_BOOL, get_fullscreen_state, _NO_ARG);
 DEFINE_PRIM(_VOID, debug_print, _BYTES);
 DEFINE_PRIM(_VOID, copy_subresource_region, _RESOURCE _I32 _I32 _I32 _I32 _RESOURCE _I32 _DYN);
+
+// CUSTOM STUFF
+#include<dwmapi.h>
+
+HL_PRIM void HL_NAME(get_cursor_position)(HWND win, int* x, int* y) {
+	POINT p1;
+	ClientToScreen(win, &p1);
+	POINT p2;
+	GetCursorPos(&p2);
+	*x = p2.x - p1.x;
+	*y = p2.y - p1.y;
+}
+
+HL_PRIM void HL_NAME(get_cursor_position_g)(int* x, int* y) {
+	POINT p;
+	GetCursorPos(&p);
+	*x = p.x;
+	*y = p.y;
+}
+
+HL_PRIM void HL_NAME(set_cursor_position)(HWND win, int x, int y) {
+	POINT p = { 0,0 };
+	ClientToScreen(win, &p);
+	SetCursorPos(p.x + x, p.y + y);
+}
+
+HL_PRIM void HL_NAME(set_cursor_position_g)(int x, int y) {
+	SetCursorPos(x, y);
+}
+
+HL_PRIM void HL_NAME(get_window_position)(HWND win, int* x, int* y) {
+	RECT* r = (RECT*)malloc(sizeof(RECT));
+	DwmGetWindowAttribute(win, DWMWA_EXTENDED_FRAME_BOUNDS, r, sizeof(RECT));
+	*x = r->left;
+	*y = r->top;
+}
+
+HL_PRIM void HL_NAME(set_window_position)(HWND win, int x, int y) {
+	RECT r1;
+	GetWindowRect(win, &r1);
+	RECT* r2 = (RECT*)malloc(sizeof(RECT));
+	DwmGetWindowAttribute(win, DWMWA_EXTENDED_FRAME_BOUNDS, r2, sizeof(RECT));
+	LONG shadowWidth = r2->left - r1.left;
+	SetWindowPos(win, HWND_TOP, x - shadowWidth, y, 0, 0, (SWP_NOSIZE));
+}
+
+HL_PRIM void HL_NAME(client_pos_to_screen_pos)(HWND win, int* x, int* y) {
+	POINT p = { 0,0 };
+	ClientToScreen(win, &p);
+	*x += p.x;
+	*y += p.y;
+}
+
+HL_PRIM void HL_NAME(screen_pos_to_client_pos)(HWND win, int* x, int* y) {
+	POINT p = { *x, *y };
+	ScreenToClient(win, &p);
+	*x = p.x;
+	*y = p.y;
+}
+
+DEFINE_PRIM(_VOID, set_cursor_position, _ABSTRACT(dx_window) _I32 _I32);
+DEFINE_PRIM(_VOID, set_cursor_position_g, _I32 _I32);
+DEFINE_PRIM(_VOID, get_cursor_position, _ABSTRACT(dx_window) _REF(_I32) _REF(_I32));
+DEFINE_PRIM(_VOID, get_cursor_position_g, _REF(_I32) _REF(_I32));
+DEFINE_PRIM(_VOID, set_window_position, _ABSTRACT(dx_window) _I32 _I32);
+DEFINE_PRIM(_VOID, get_window_position, _ABSTRACT(dx_window) _REF(_I32) _REF(_I32));
+DEFINE_PRIM(_VOID, client_pos_to_screen_pos, _ABSTRACT(dx_window) _REF(_I32) _REF(_I32));
+DEFINE_PRIM(_VOID, screen_pos_to_client_pos, _ABSTRACT(dx_window) _REF(_I32) _REF(_I32));
